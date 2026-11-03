@@ -74,4 +74,10 @@ class GreetingHttpTest {
 		)
 			.andExpect(status().isBadRequest)
 	}
+
+	@Test
+	fun rejectsNonPositiveId() {
+		mockMvc.perform(get("/api/v1/greetings/0"))
+			.andExpect(status().isBadRequest)
+	}
 }

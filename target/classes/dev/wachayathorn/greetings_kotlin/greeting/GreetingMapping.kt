@@ -10,5 +10,5 @@ fun Greeting.toResponse(): GreetingResponse = GreetingResponse(
 	recipient = recipient,
 )
 
-// this?. คือเรียกต่อเมื่อไม่ใช่ null takeIf คืน null ถ้าเงื่อนไขไม่ผ่าน
-fun String?.normalizedOrNull(): String? = this?.trim()?.takeIf(String::isNotEmpty)
+// let ทำงานในบล็อกเมื่อไม่ใช่ null แล้วคืนค่าจากบล็อก takeIf คืน null ถ้าเงื่อนไขไม่ผ่าน
+fun String?.normalizedOrNull(): String? = this?.let { it.trim() }?.takeIf(String::isNotEmpty)
