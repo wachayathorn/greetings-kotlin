@@ -15,7 +15,7 @@ import dev.wachayathorn.greetings_kotlin.greeting.dto.request.UpsertGreetingRequ
 import dev.wachayathorn.greetings_kotlin.greeting.dto.response.GreetingResponse
 import dev.wachayathorn.greetings_kotlin.greeting.service.GreetingService
 
-import org.springframework.validation.annotation.Validated
+import jakarta.validation.Valid
 
 // คลาสนี้รับ GreetingService ผ่าน constructor Spring สร้างให้ ไม่ต้องใส่ @Autowired
 @RestController
@@ -25,7 +25,7 @@ class GreetingController(
 ) {
 
 	@PostMapping
-	fun create(@Validated @RequestBody request: UpsertGreetingRequest): ResponseEntity<GreetingResponse> =
+	fun create(@Valid @RequestBody request: UpsertGreetingRequest): ResponseEntity<GreetingResponse> =
 		ResponseEntity.status(HttpStatus.CREATED).body(greetingService.create(request))
 
 	@GetMapping
@@ -39,7 +39,7 @@ class GreetingController(
 	@PutMapping("/{id}")
 	fun update(
 		@PathVariable id: Long,
-		@Validated @RequestBody request: UpsertGreetingRequest,
+		@Valid @RequestBody request: UpsertGreetingRequest,
 	): ResponseEntity<GreetingResponse> =
 		ResponseEntity.ok(greetingService.update(id, request))
 
