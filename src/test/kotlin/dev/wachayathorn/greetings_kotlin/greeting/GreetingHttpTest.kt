@@ -6,6 +6,12 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.MvcResult
+import org.springframework.test.web.servlet.RequestBuilder
+import org.springframework.test.web.servlet.ResultActions
+import org.springframework.test.web.servlet.ResultHandler
+import org.springframework.test.web.servlet.ResultMatcher
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
@@ -22,7 +28,7 @@ class GreetingHttpTest {
     @Test
     fun createListGetUpdateAndDelete() {
         mockMvc
-            .perform(
+            .performAwait(
                 post("/api/v1/greetings")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"message":"  hello  ","recipient":"  Ann  "}"""),
@@ -32,7 +38,7 @@ class GreetingHttpTest {
             .andExpect(jsonPath("$.recipient").value("Ann"))
 
         mockMvc
-            .perform(
+            .performAwait(
                 post("/api/v1/greetings")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"message":"no one"}"""),
@@ -40,17 +46,17 @@ class GreetingHttpTest {
             .andExpect(jsonPath("$.recipient").doesNotExist())
 
         mockMvc
-            .perform(get("/api/v1/greetings"))
+            .performAwait(get("/api/v1/greetings"))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.length()").value(2))
 
         mockMvc
-            .perform(get("/api/v1/greetings/1"))
+            .performAwait(get("/api/v1/greetings/1"))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.message").value("hello"))
 
         mockMvc
-            .perform(
+            .performAwait(
                 put("/api/v1/greetings/1")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"message":"updated","recipient":"   "}"""),
@@ -59,11 +65,11 @@ class GreetingHttpTest {
             .andExpect(jsonPath("$.recipient").doesNotExist())
 
         mockMvc
-            .perform(delete("/api/v1/greetings/1"))
+            .performAwait(delete("/api/v1/greetings/1"))
             .andExpect(status().isNoContent)
 
         mockMvc
-            .perform(get("/api/v1/greetings/1"))
+            .performAwait(get("/api/v1/greetings/1"))
             .andExpect(status().isNotFound)
             .andExpect(jsonPath("$.id").value(1))
     }
@@ -71,7 +77,7 @@ class GreetingHttpTest {
     @Test
     fun rejectsBlankMessage() {
         mockMvc
-            .perform(
+            .performAwait(
                 post("/api/v1/greetings")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"message":"   "}"""),
@@ -81,7 +87,38 @@ class GreetingHttpTest {
     @Test
     fun rejectsNonPositiveId() {
         mockMvc
-            .perform(get("/api/v1/greetings/0"))
+            .performAwait(get("/api/v1/greetings/0"))
             .andExpect(status().isBadRequest)
+    }
+
+    // suspend controller ตอบแบบ async ใน MockMvc ต้องรอ asyncDispatch ก่อนอ่านผล
+    private fun MockMvc.performAwait(builder: RequestBuilder): ResultActions {
+        val mvcResult = perform(builder).andReturn()
+        return if (mvcResult.request.isAsyncStarted) {
+            perform(asyncDispatch(mvcResult))
+        } else {
+            CompletedResultActions(mvcResult)
+        }
+    }
+
+    private class CompletedResultActions(
+        private val mvcResult: MvcResult,
+    ) : ResultActions {
+        override fun andExpect(matcher: ResultMatcher): ResultActions {
+            matcher.match(mvcResult)
+            return this
+        }
+
+        override fun andExpectAll(vararg matchers: ResultMatcher): ResultActions {
+            matchers.forEach { it.match(mvcResult) }
+            return this
+        }
+
+        override fun andDo(handler: ResultHandler): ResultActions {
+            handler.handle(mvcResult)
+            return this
+        }
+
+        override fun andReturn(): MvcResult = mvcResult
     }
 }

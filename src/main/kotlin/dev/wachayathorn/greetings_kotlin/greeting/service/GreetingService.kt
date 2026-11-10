@@ -8,38 +8,50 @@ import dev.wachayathorn.greetings_kotlin.greeting.model.Greeting
 import dev.wachayathorn.greetings_kotlin.greeting.normalizedOrNull
 import dev.wachayathorn.greetings_kotlin.greeting.repository.GreetingRepository
 import dev.wachayathorn.greetings_kotlin.greeting.toResponse
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
 import org.springframework.stereotype.Service
 
 @Service
 class GreetingService(
     private val greetingRepository: GreetingRepository,
 ) {
-    fun create(request: UpsertGreetingRequest): GreetingResponse {
+    // suspend = ฟังก์ชันหยุดรอได้โดยไม่บล็อกเธรดแบบ Thread.sleep
+    // withContext(Dispatchers.IO) ย้ายงาน IO ไปพูลที่เหมาะกับรอ I/O
+    suspend fun create(request: UpsertGreetingRequest): GreetingResponse = withContext(Dispatchers.IO) {
         val greeting =
             Greeting(
                 id = greetingRepository.nextId(),
                 message = request.message.trim(),
                 recipient = request.recipient.normalizedOrNull(),
             )
-        return greetingRepository.save(greeting).toResponse()
+        greetingRepository.save(greeting).toResponse()
     }
 
-    fun list(): List<GreetingResponse> = greetingRepository.findAll().map { it.toResponse() }
+    suspend fun list(): List<GreetingResponse> = withContext(Dispatchers.IO) {
+        greetingRepository.findAll().map { it.toResponse() }
+    }
 
-    // when แยกกรณี null กับเจอของ ?: คือทางสั้นของ when ที่เหลือค่าเดียวถ้าซ้ายเป็น null
-    fun get(id: Long): GreetingResponse {
+    // coroutineScope + async รันงานย่อยพร้อมกัน แล้ว await รวมผล
+    suspend fun get(id: Long): GreetingResponse = coroutineScope {
         requirePositive(id)
-        return when (val found = greetingRepository.findById(id)) {
+        val found =
+            async(Dispatchers.IO) {
+                greetingRepository.findById(id)
+            }
+        when (val greeting = found.await()) {
             null -> throw GreetingNotFoundException(id)
-            else -> found.toResponse()
+            else -> greeting.toResponse()
         }
     }
 
     // copy สร้าง data class ใหม่โดยเปลี่ยนเฉพาะฟิลด์ที่ระบุ ที่เหลือคงค่าเดิม
-    fun update(
+    suspend fun update(
         id: Long,
         request: UpsertGreetingRequest,
-    ): GreetingResponse {
+    ): GreetingResponse = withContext(Dispatchers.IO) {
         requirePositive(id)
         val existing = greetingRepository.findById(id) ?: throw GreetingNotFoundException(id)
         val updated =
@@ -47,10 +59,10 @@ class GreetingService(
                 message = request.message.trim(),
                 recipient = request.recipient.normalizedOrNull(),
             )
-        return greetingRepository.save(updated).toResponse()
+        greetingRepository.save(updated).toResponse()
     }
 
-    fun delete(id: Long) {
+    suspend fun delete(id: Long) = withContext(Dispatchers.IO) {
         requirePositive(id)
         val removed = greetingRepository.deleteById(id)
         if (!removed) {

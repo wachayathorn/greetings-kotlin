@@ -21,27 +21,28 @@ import org.springframework.web.bind.annotation.RestController
 class GreetingController(
     private val greetingService: GreetingService,
 ) {
+    // suspend ที่ controller ให้ Spring รอ coroutine จบ แล้วค่อยตอบ HTTP
     @PostMapping
-    fun create(
+    suspend fun create(
         @Valid @RequestBody request: UpsertGreetingRequest,
     ): ResponseEntity<GreetingResponse> = ResponseEntity.status(HttpStatus.CREATED).body(greetingService.create(request))
 
     @GetMapping
-    fun list(): ResponseEntity<List<GreetingResponse>> = ResponseEntity.ok(greetingService.list())
+    suspend fun list(): ResponseEntity<List<GreetingResponse>> = ResponseEntity.ok(greetingService.list())
 
     @GetMapping("/{id}")
-    fun get(
+    suspend fun get(
         @PathVariable id: Long,
     ): ResponseEntity<GreetingResponse> = ResponseEntity.ok(greetingService.get(id))
 
     @PutMapping("/{id}")
-    fun update(
+    suspend fun update(
         @PathVariable id: Long,
         @Valid @RequestBody request: UpsertGreetingRequest,
     ): ResponseEntity<GreetingResponse> = ResponseEntity.ok(greetingService.update(id, request))
 
     @DeleteMapping("/{id}")
-    fun delete(
+    suspend fun delete(
         @PathVariable id: Long,
     ): ResponseEntity<Void> {
         greetingService.delete(id)
