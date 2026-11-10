@@ -1,15 +1,12 @@
 package dev.wachayathorn.greetings_kotlin.greeting.repository
 
+import dev.wachayathorn.greetings_kotlin.greeting.model.Greeting
+import org.springframework.stereotype.Repository
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 
-import org.springframework.stereotype.Repository
-
-import dev.wachayathorn.greetings_kotlin.greeting.model.Greeting
-
 @Repository
 class GreetingRepository {
-
     private val greetings = ConcurrentHashMap<Long, Greeting>()
     private val sequence = AtomicLong(0)
 
