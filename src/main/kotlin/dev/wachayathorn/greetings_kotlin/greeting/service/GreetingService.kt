@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service
 import dev.wachayathorn.greetings_kotlin.greeting.dto.request.UpsertGreetingRequest
 import dev.wachayathorn.greetings_kotlin.greeting.dto.response.GreetingResponse
 import dev.wachayathorn.greetings_kotlin.greeting.exception.GreetingNotFoundException
+import dev.wachayathorn.greetings_kotlin.greeting.exception.InvalidGreetingIdException
 import dev.wachayathorn.greetings_kotlin.greeting.model.Greeting
 import dev.wachayathorn.greetings_kotlin.greeting.normalizedOrNull
 import dev.wachayathorn.greetings_kotlin.greeting.repository.GreetingRepository
@@ -54,8 +55,9 @@ class GreetingService(
 		}
 	}
 
-	// require โยน IllegalArgumentException ถ้าเงื่อนไขเป็นเท็จ
 	private fun requirePositive(id: Long) {
-		require(id > 0) { "Greeting id must be positive" }
+		if (id <= 0) {
+			throw InvalidGreetingIdException()
+		}
 	}
 }
